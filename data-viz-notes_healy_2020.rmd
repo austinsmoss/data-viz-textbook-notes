@@ -2,9 +2,10 @@
 title: "Data Visualization (Healy, 2020) Notes"
 author: "Austin Moss"
 date: "2/9/2021"
-output: 
+output:
+  pdf_document: default
   html_document:
-    keep_md: true
+    keep_md: yes
 ---
    
 ## Data Visualization Notes
@@ -153,14 +154,255 @@ The `read_csv()' function in the `readr' package is used to input CSV files. Oth
 STOPPED AT PAGE 50 ON 2021-02-09
 
 
+```{r}
 
+url <- "https://cdn.rawgit.com/kjhealy/viz-organdata/master/organdonation.csv"
+
+organs <- read_csv(file = url)
+
+```
 
 
 ## Make a Plot
 
+View the Gapminder data to see what we are working with.
 ```{r}
+gapminder
+```
+
+Create a basic scatter plot of the Gapminder data.
+
+```{r}
+p <- ggplot(data=gapminder,
+            mapping=aes(x=gdpPercap, y=lifeExp))
+p + geom_point()
 
 ```
+
+###Create another scatterplot using Gapminder data. Will elaborate on this in more detail.
+
+```{r}
+#First, tell ggplot the data we are using.
+p <- ggplot(data=gapminder)
+
+#Second, tell ggplot which variables in data should be represented by which visual elements in the plot.
+p <- ggplot(data=gapminder,
+            mapping=aes(x=gdpPercap,
+                        y=lifeExp))
+```
+
+So far, we have given the ggplot function two arguments: `data` and `mapping`. 
+
+The `mapping` argument is itself a FUNCTION (i.e., the `mapping` function is an argument to the `ggplot` function). The `mapping = aes(...)` argument 
+links variables to things you will see on the plot. `x` and `y` values are obvious. Other aesthetic mappings include color, shape, size, line type, etc. **IMPORTANT** A mapping does not say what particular color, shape, line type, etc. will be on the plot. It simply says which *variables* in the data will be *represented* by these aesthetics (e.g., % of fake news is represented by color).
+
+At this point, we have created the `p` object using the `ggplot()` function and given it some basic information (i.e., `data` and `mapping`). `ggplot()` has also created `p` using a lot of other information as defaults. To see how much default information ask for `str(p)`.
+
+Before a plot can be made, we must tell `ggplot()` what type of plot to draw. This is called adding a *layer* to the plot. This simply means picking a `geom_` function. The `geom_point()` function creates a scatterplot.
+
+```{r}
+#Create a scatterplot
+p + geom_point()
+```
+
+
+### The basic recipe to create a plot with ggplot is:
+1. Tell the ggplot() function what our data is.
+2. Tell ggplot() what relationships we want to see. For convenience we will put the results of the first two steps in an object called p.
+3. Tell ggplot how we want to see the relationships in our data.
+4. Layer on geoms as needed, by adding them to the p object one at a time.
+5. Use some additional functions to adjust scales, labels, tick marks, titles. We’ll learn more about some of these functions shortly.
+
+
+
+### Let's try adding some additional layers to our scatterplot
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y=lifeExp))
+#Create a smoothed line with standard error shading
+p + geom_smooth()
+
+#Smoothed line PLUS scatterplot
+p + geom_point() + geom_smooth()
+
+#Smoothed line fit using a linear model PLUS scatterplot
+p + geom_point() + geom_smooth(method = "lm")
+```
+
+Notice that `geom_point()` and `geom_smooth` inherited the information from object `p` as default. We can give geoms separate instructions that they will follow instead.
+
+In our Gapminder data, the data is quite bunched to the left side. The plot may look better if we transformed the x-axis from a linear scale to a log scale. Additionally, test out what happens if we switch the order of the `geom_` functions... It seems that the plot is created in order of the functions specified, so functions later in the list are "on top" of earlier functions.
+
+```{r}
+p + geom_point() +
+    geom_smooth(method = "gam") +
+    scale_x_log10()
+
+p + geom_smooth(method = "gam") +
+    geom_point() +
+    scale_x_log10()
+```
+
+### Let's clean up our scatterplot
+
+We likely want to polish our plot with nicer axis labels, a title, and different x-axis notation (from scientific to dollars). Let's only worry about the x-axis notation for now.
+
+```{r}
+p + geom_point() +
+    geom_smooth(method = "gam") +
+    scale_x_log10(labels = scales::dollar)
+```
+
+Notice that the scale of the x-axis is changed by passing an argument to the `scale_` functions.The `scales` library contains useful pre-made formatting functions. If a library is not already loaded then a specific function can be grabbed from that library using the syntax `thelibrary::thefunction`. Otherwise, load the library using `library(scales)`.
+
+
+
+### Mapping vs setting aesthetics
+
+Let's map the variable `continent` to be represented by color.
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp,
+                          color = continent))
+#Create a plot that represents each continent in our data with a different color
+p + geom_point() +
+    geom_smooth(method = "loess") +
+    scale_x_log10()
+```
+
+If we want to *set* a property (i.e., change the scatterpoints to be a different color -- say, purple), we do this within the `geom_` function.
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp))
+
+#Create our original scatterplot and smoothed line using the color purple
+p + geom_point(color = "purple") +
+    geom_smooth(method = "loess") +
+    scale_x_log10()
+```
+
+Show some additional adjustments that can be made to plots by giving the `geom_` functions various arguments. *alpha* changes the transparency of the objects. *se* turns off the standard errors shading. *size* changes the size of the line.
+
+```{r}
+p + geom_point(alpha = 0.3) +
+    geom_smooth(color = "orange",
+                se = FALSE,
+                size = 8,
+                method = "lm") +
+    scale_x_log10()
+```
+
+
+
+### Let's add some labels
+
+Let's continue to polish our scatterplot by adding appropriate labels.
+
+```{r}
+p + geom_point(alpha = 0.3) +
+    geom_smooth(method = "gam") +
+    scale_x_log10(labels = scales::dollar) +
+    labs(x = "GDP Per Capita",
+         y = "Life Expectancy in Years",
+         title = "Economic Growth and Life Expectancy",
+         subtitle = "Data points are country-years",
+         caption = "Source: Gapminder.")
+```
+
+
+Let's go back to mapping the continent variable to color.
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp,
+                          color = continent))
+#Create a plot that represents each continent in our data with a different color
+p + geom_point() +
+    geom_smooth(method = "loess") +
+    scale_x_log10()
+```
+We should shade the standard error ribbon for each line the same color as the line. The color of the standard error ribbon is controlled by the `fill` aesthetic. **whereas** the `color` aesthetic affects the appearance of lines and points, `fill` affects appearance of the filled areas of bars, polygons, and, in this case, the interior of the smoother's standard error ribbon.
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp,
+                          color = continent,
+                          fill = continent))
+
+#Create a plot that represents each continent in our data with a different color
+p + geom_point() +
+    geom_smooth(method = "loess") +
+    scale_x_log10()
+```
+
+
+Let's say that we think the above plot is too busy with five fitted lines. Instead, we want only one fitted line but to still shade each data point according to its continent.
+
+Remember, by default, geoms inherit their mappings from the `ggplot()` function. However, we can change this by mapping the aesthetics we want only to the `geom_` functions that we want them to apply to. We use the same `mapping = aes(...)` syntax that is in the `ggplot()` function, but now we write it directly in the `geom_` function.
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp))
+
+#Create a plot--directly map continent to color within the geom_point() function, so it only applies to the scatterpoints
+p + geom_point(mapping = aes(color = continent)) +
+    geom_smooth(method = "loess") +
+    scale_x_log10()
+```
+
+We can also map continuous variables to color. It will present the data as a gradient of the color and provide a discretized scale for interpretation. Additionally, notice that we can transform variables directly within the `aes(...)` statement.
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp))
+p + geom_point(mapping = aes(color = log(pop))) +
+    scale_x_log10()
+```
+
+
+
+### Customizing plot export options
+
+To change the size of your plots, you can either change the default settings for the entire `.Rmd` document by setting an option in your first code chunk. The syntax tells R to make 8X5 figures: `knitr::opts_chunk$set(fig.width=8, fig.height=5)`
+
+More practically, we will want to customize the size of specific plots. This can be done by adding options to the `R` code chunk as follows:
+
+```{r, fig.width = 12, fig.height = 9}
+p + geom_point(mapping = aes(color = log(pop))) +
+    scale_x_log10()
+```
+
+To save a plot, the most convenient method is the `ggsave()` function. `ggsave()` will save the most recently displayed figure. Syntax: `ggsave(filename = "my_figure.png")`. Formats other than `.png` are available as well, most notably `.pdf`.
+
+Instead of outputting our plots when we call our *layers*, we can assign a plot to an object just like any other thing in R. We can then save this plot at any point by giving the `plot` argument to the `ggsave()` function. For example:
+
+```{r}
+p1 <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp))
+
+p1_out <- p1 + geom_point(mapping = aes(color = log(pop))) +
+    scale_x_log10()
+
+ggsave("my_figure.pdf", plot = p1_out)
+```
+
+
+
+
+STOPPED AT PAGE 72 ON 2021-03-17
+
+
 
 
 ## Show the Right Numbers
